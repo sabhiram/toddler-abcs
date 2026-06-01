@@ -145,8 +145,14 @@
   }
   .key.target.strong{ animation:pulse .55s ease-in-out infinite; }
   .key.target.strong::after{
-    content:"👆"; position:absolute; top:-1.4em; left:50%; transform:translateX(-50%);
-    font-size:1.4em; animation:bob 1s ease-in-out infinite;
+    content:"👇"; position:absolute; bottom:108%; left:50%;
+    transform:translateX(-50%); transform-origin:bottom center;
+    font-size:1.4em; pointer-events:none;
+    animation:pointbob .9s ease-in-out infinite;
+  }
+  @keyframes pointbob{
+    0%,100%{ transform:translateX(-50%) translateY(0); }
+    50%{ transform:translateX(-50%) translateY(-7px); }
   }
   .key.wrongflash{ background:var(--warn); color:#fff; animation:none; }
 
@@ -541,7 +547,8 @@ function showSpeech(txt){
   showSpeech._t=setTimeout(()=>elSpeech.classList.remove("show"), 2600);
 }
 
-function nextRound(){
+// Render a fresh round's visuals (no unlock, no speech) — safe to call before reveal
+function showRound(){
   wrongCount=0;
   target=pickLetter(); lastLetter=target;
   const it=randItem(target); elPic.textContent=it[0]; word=it[1];
@@ -550,6 +557,9 @@ function nextRound(){
   elHint.innerHTML="&nbsp;";
   elMascot.textContent=chosenAnimal[0]; elMascot.style.transform="";
   updateKeyboardVisibility();
+}
+function nextRound(){
+  showRound();
   locked=false;
   if(settings.announce){
     setTimeout(()=>{ if(!locked && target) say(letterName(target)); }, 350);
@@ -756,12 +766,16 @@ $("fsStartBtn").addEventListener("click",()=>openChooser(true));
 
 function beginPlay(){
   elChooser.classList.remove("show");
+  score=0; roundProgress=0; updateScore(); setDots();
+  showRound();                 // set the real first letter BEFORE revealing (no flash/swap)
   elPlay.classList.remove("hide");
   $("scorebox").classList.remove("hide");
-  score=0; roundProgress=0; updateScore(); setDots();
   started=true; locked=true;
-  if(settings.voice){ say(`${chosenColor.name} ${chosenAnimal[1]}! Let's play!`); }
-  setTimeout(()=>{ nextRound(); }, 900);
+  // greet, then unlock and announce the (already-shown) letter
+  say(`${chosenColor.name} ${chosenAnimal[1]}! Let's play!`, ()=>{
+    locked=false;
+    if(settings.announce && target) say(letterName(target));
+  });
 }
 $("goBtn").addEventListener("click",beginPlay);
 
