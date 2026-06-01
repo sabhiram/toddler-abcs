@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#1d6fe0" />
+<title>Lion's ABC Typing</title>
+<style>
+  :root{
+    /* Blue theme (Boss's orders) */
+    --blue-1:#5eb3ff;
+    --blue-2:#1d6fe0;
+    --blue-3:#0b3f8c;
+    /* accent = the color the Boss picks at the start (defaults to blue) */
+    --accent-1:#5eb3ff;
+    --accent-2:#1d6fe0;
+    --accent-3:#0b3f8c;
+    --sky:#eaf4ff;
+    --ink:#0b3f8c;
+    --good:#28c76f;
+    --warn:#ff9f43;
+    --card:#ffffff;
+    --shadow:0 18px 50px rgba(11,63,140,.25);
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family:"Baloo 2","Comic Sans MS","Chalkboard SE","Segoe UI Rounded",system-ui,-apple-system,Arial,sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    background:linear-gradient(160deg,#dcebff 0%, #cfe6ff 35%, #bfe0ff 70%, #a9d4ff 100%);
+    user-select:none; -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  /* soft moving clouds backdrop, kept very subtle to stay distraction-free */
+  .bg{ position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+  .bg b{
+    position:absolute; font-size:5rem; opacity:.18; filter:blur(.3px);
+    animation:drift linear infinite;
+  }
+  @keyframes drift{
+    from{ transform:translateX(-20vw); }
+    to{ transform:translateX(120vw); }
+  }
+
+  #stage{ position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+
+  /* ---------- Start overlay ---------- */
+  #start{
+    position:fixed; inset:0; z-index:50;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.4rem;
+    background:radial-gradient(circle at 50% 35%, #ffffff 0%, #e9f3ff 55%, #cfe6ff 100%);
+    text-align:center; padding:2rem;
+  }
+  #start .lion{ font-size:8rem; animation:bob 2.4s ease-in-out infinite; }
+  #start h1{ font-size:clamp(2rem,7vw,4rem); margin:.2rem; color:var(--blue-3); }
+  #start p{ font-size:clamp(1rem,3.5vw,1.4rem); margin:0 0 .4rem; color:#3a6db0; }
+  .bigbtn{
+    border:none; cursor:pointer; color:#fff; font-weight:800; font-family:inherit;
+    background:linear-gradient(180deg,var(--accent-1),var(--accent-2));
+    box-shadow:var(--shadow); border-radius:999px;
+    font-size:clamp(1.4rem,5vw,2.2rem); padding:.7em 1.4em;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .bigbtn:active{ transform:scale(.95); filter:brightness(1.05); }
+  .ghostbtn{
+    border:3px solid var(--accent-2); background:#fff; color:var(--accent-2);
+    font-family:inherit; font-weight:700; cursor:pointer; border-radius:999px;
+    font-size:clamp(.95rem,3vw,1.2rem); padding:.5em 1.1em;
+  }
+  .ghostbtn:active{ transform:scale(.95); }
+
+  /* ---------- Top bar (minimal) ---------- */
+  #topbar{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.6rem .8rem; pointer-events:none;
+  }
+  #topbar .left,#topbar .right{ display:flex; gap:.5rem; align-items:center; pointer-events:auto; }
+  .iconbtn{
+    width:46px; height:46px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,.55); color:var(--blue-3); font-size:1.3rem; line-height:1;
+    display:flex; align-items:center; justify-content:center; opacity:.5;
+    transition:opacity .2s, transform .1s;
+  }
+  .iconbtn:hover{ opacity:.95; }
+  .iconbtn:active{ transform:scale(.9); }
+
+  /* ---------- Main play area ---------- */
+  #play{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:clamp(.4rem,2vh,1.2rem); padding:1rem; position:relative;
+  }
+  #picture{ font-size:clamp(5rem,22vh,12rem); line-height:1; filter:drop-shadow(0 12px 18px rgba(11,63,140,.22)); }
+
+  #card{
+    background:var(--card); border-radius:36px; box-shadow:var(--shadow);
+    padding:clamp(.4rem,2vh,1.2rem) clamp(2rem,8vw,4rem);
+    display:flex; align-items:center; justify-content:center; min-width:min(60vw,360px);
+  }
+  #letter{
+    font-size:clamp(7rem,32vh,20rem); font-weight:800; line-height:1;
+    letter-spacing:-.02em;
+  }
+  #hintword{ font-size:clamp(1rem,3.5vh,1.8rem); color:#5b87c4; height:1.4em; font-weight:700; }
+
+  /* mascot lion that reacts */
+  #mascot{
+    position:absolute; bottom:0; right:clamp(.5rem,3vw,3rem);
+    font-size:clamp(3.4rem,10vh,6rem); transform-origin:bottom center;
+    pointer-events:none; transition:transform .2s ease;
+  }
+  #speech{
+    position:absolute; right:clamp(4.2rem,13vw,8rem); bottom:clamp(3.2rem,9vh,5.4rem);
+    background:#fff; color:var(--accent-3); border:3px solid var(--accent-1);
+    border-radius:18px; padding:.4em .7em; font-size:clamp(.8rem,2.4vh,1.15rem); font-weight:700;
+    max-width:46vw; box-shadow:var(--shadow); opacity:0; transform:translateY(8px) scale(.9);
+    transition:opacity .2s, transform .2s; pointer-events:none;
+  }
+  #speech.show{ opacity:1; transform:translateY(0) scale(1); }
+
+  /* ---------- On-screen keyboard helper ---------- */
+  #keyboard{
+    position:fixed; left:0; right:0; bottom:0; z-index:15;
+    display:flex; flex-direction:column; align-items:center; gap:.4vh;
+    padding:.6rem .4rem calc(.6rem + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.65));
+    opacity:0; transform:translateY(20px); transition:opacity .25s, transform .25s;
+    pointer-events:none;
+  }
+  #keyboard.show{ opacity:1; transform:translateY(0); }
+  .krow{ display:flex; gap:.5vw; justify-content:center; width:100%; }
+  .key{
+    flex:1 1 0; max-width:54px; aspect-ratio:1/1.05;
+    display:flex; align-items:center; justify-content:center;
+    background:#fff; color:#9db8da; border-radius:12px; font-weight:800;
+    font-size:clamp(.8rem,2.6vh,1.4rem); box-shadow:0 4px 0 rgba(11,63,140,.12);
+    transition:transform .12s, background .15s, color .15s, box-shadow .15s;
+  }
+  .key.target{
+    background:linear-gradient(180deg,var(--accent-1),var(--accent-2)); color:#fff;
+    animation:pulse 1s ease-in-out infinite; box-shadow:0 6px 0 var(--accent-3);
+    position:relative;
+  }
+  .key.target.strong{ animation:pulse .55s ease-in-out infinite; }
+  .key.target.strong::after{
+    content:"👆"; position:absolute; top:-1.4em; left:50%; transform:translateX(-50%);
+    font-size:1.4em; animation:bob 1s ease-in-out infinite;
+  }
+  .key.wrongflash{ background:var(--warn); color:#fff; animation:none; }
+
+  @keyframes pulse{ 0%,100%{ transform:translateY(0) scale(1); } 50%{ transform:translateY(-6px) scale(1.06); } }
+  @keyframes bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+
+  /* success / wrong animations on the letter card */
+  .pop{ animation:pop .5s ease; }
+  @keyframes pop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.18) rotate(-2deg); } 70%{ transform:scale(.96); } 100%{ transform:scale(1); } }
+  .wiggle{ animation:wiggle .4s ease; }
+  @keyframes wiggle{ 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-10px) rotate(-2deg);} 75%{ transform:translateX(10px) rotate(2deg);} }
+  .cheer{ animation:cheer .6s ease; }
+  @keyframes cheer{ 0%{ transform:scale(1);} 30%{ transform:scale(1.25) rotate(-8deg);} 60%{ transform:scale(1.1) rotate(6deg);} 100%{ transform:scale(1);} }
+
+  #confetti{ position:fixed; inset:0; z-index:30; pointer-events:none; }
+
+  /* ---------- Score + progress to next mini-celebration ---------- */
+  #scorebox{
+    display:flex; flex-direction:column; gap:.25rem; align-items:flex-start;
+    background:rgba(255,255,255,.55); border-radius:18px; padding:.4rem .7rem; opacity:.85;
+  }
+  #score{ font-size:clamp(1.1rem,4vw,1.6rem); font-weight:800; color:var(--accent-3); line-height:1; }
+  #score b{ font-size:1.25em; }
+  #dots{ display:flex; gap:4px; }
+  #dots .dot{ width:11px; height:11px; border-radius:50%; background:#ffffff; box-shadow:inset 0 0 0 2px rgba(11,63,140,.18); transition:transform .2s, background .2s; }
+  #dots .dot.on{ background:var(--accent-2); box-shadow:none; transform:scale(1.15); }
+  .bigscore{ animation:bigscore .45s ease; }
+  @keyframes bigscore{ 0%{ transform:scale(1);} 40%{ transform:scale(1.4);} 100%{ transform:scale(1);} }
+
+  /* ---------- Chooser (pick color + animal once at start) ---------- */
+  #chooser{
+    position:fixed; inset:0; z-index:55; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:clamp(.6rem,2.5vh,1.4rem);
+    background:radial-gradient(circle at 50% 30%, #ffffff 0%, #e9f3ff 55%, #cfe6ff 100%);
+    padding:1.2rem; text-align:center;
+  }
+  #chooser.show{ display:flex; }
+  #chooser h2{ font-size:clamp(1.3rem,5vw,2.2rem); margin:.1rem; color:var(--blue-3); }
+  #chooser .preview{ font-size:clamp(3.5rem,12vh,6rem); line-height:1; transition:transform .15s; }
+  .swatches{ display:flex; flex-wrap:wrap; gap:clamp(.5rem,2vw,1rem); justify-content:center; max-width:640px; }
+  .swatch{
+    width:clamp(48px,12vw,72px); height:clamp(48px,12vw,72px); border-radius:50%;
+    border:5px solid transparent; cursor:pointer; box-shadow:0 8px 18px rgba(11,63,140,.22);
+    transition:transform .12s, border-color .12s;
+  }
+  .swatch:active{ transform:scale(.92); }
+  .swatch.sel{ border-color:#0b3f8c; transform:scale(1.12); }
+  .animals{ display:flex; flex-wrap:wrap; gap:clamp(.4rem,1.6vw,.8rem); justify-content:center; max-width:640px; }
+  .animal{
+    width:clamp(54px,13vw,82px); height:clamp(54px,13vw,82px); border-radius:22px; border:5px solid transparent;
+    background:#fff; cursor:pointer; font-size:clamp(1.8rem,6vw,2.6rem); line-height:1;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(11,63,140,.16);
+    transition:transform .12s, border-color .12s;
+  }
+  .animal:active{ transform:scale(.92); }
+  .animal.sel{ border-color:var(--accent-2); transform:scale(1.12); }
+  #goBtn:disabled{ opacity:.35; filter:grayscale(.4); cursor:default; }
+
+  /* ---------- Settings (parent) ---------- */
+  #settings{
+    position:fixed; inset:0; z-index:60; display:none;
+    align-items:center; justify-content:center; background:rgba(11,63,140,.45); padding:1rem;
+  }
+  #settings.show{ display:flex; }
+  .panel{
+    background:#fff; border-radius:24px; box-shadow:var(--shadow);
+    width:min(440px,94vw); max-height:90vh; overflow:auto; padding:1.2rem 1.3rem;
+  }
+  .panel h2{ margin:.1rem 0 1rem; color:var(--blue-3); display:flex; align-items:center; gap:.4rem; }
+  .panel .row{ display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.55rem 0; border-top:1px solid #eef3fb; }
+  .panel .row:first-of-type{ border-top:none; }
+  .panel label{ font-weight:700; color:#33599a; }
+  .panel small{ display:block; color:#90a6c8; font-weight:600; font-size:.78rem; }
+  .panel select,.panel input[type=range]{ font-family:inherit; }
+  .panel select{ padding:.4em; border-radius:10px; border:2px solid #cfe0f7; color:var(--blue-3); font-weight:700; background:#fff; max-width:55%; }
+  .switch{ position:relative; width:54px; height:30px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:#cdd9ec; border-radius:999px; cursor:pointer; transition:.2s; }
+  .slider:before{ content:""; position:absolute; height:24px; width:24px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+  input:checked + .slider{ background:var(--good); }
+  input:checked + .slider:before{ transform:translateX(24px); }
+  .panel .done{ width:100%; margin-top:1rem; }
+  .hide{ display:none !important; }
+</style>
+</head>
+<body>
+  <div class="bg" id="bg"></div>
+
+  <!-- Minimal top bar: tiny gear (parent) + fullscreen -->
+  <div id="topbar">
+    <div class="left">
+      <div id="scorebox" class="hide">
+        <div id="score">⭐ <b>0</b></div>
+        <div id="dots"></div>
+      </div>
+    </div>
+    <div class="right">
+      <button class="iconbtn" id="fsBtn" title="Fullscreen" aria-label="Fullscreen">⛶</button>
+      <button class="iconbtn" id="gearBtn" title="Grown-up settings" aria-label="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <div id="stage">
+    <div id="play" class="hide">
+      <div id="picture" aria-hidden="true">🦁</div>
+      <div id="card"><span id="letter">A</span></div>
+      <div id="hintword">&nbsp;</div>
+
+      <div id="speech"></div>
+      <div id="mascot" aria-hidden="true">🦁</div>
+    </div>
+  </div>
+
+  <!-- On-screen keyboard helper -->
+  <div id="keyboard" aria-hidden="true"></div>
+
+  <canvas id="confetti"></canvas>
+
+  <!-- Start overlay -->
+  <div id="start">
+    <div class="lion">🦁</div>
+    <h1>Lion's ABC Typing</h1>
+    <p>Press the big letter on your keyboard!</p>
+    <button class="bigbtn" id="playBtn">▶ Let's Play!</button>
+    <button class="ghostbtn" id="fsStartBtn">⛶ Play in Fullscreen</button>
+  </div>
+
+  <!-- Chooser: pick a color + animal once at the start -->
+  <div id="chooser">
+    <div class="preview" id="chooserPreview">🦁</div>
+    <h2>Pick a color!</h2>
+    <div class="swatches" id="swatches"></div>
+    <h2>Pick your buddy!</h2>
+    <div class="animals" id="animals"></div>
+    <button class="bigbtn" id="goBtn" disabled>▶ Go!</button>
+  </div>
+
+  <!-- Parent settings -->
+  <div id="settings">
+    <div class="panel">
+      <h2>⚙️ Grown-up Settings</h2>
+
+      <div class="row">
+        <div><label>Voice on / off</label><small>"A for Apple" and gentle corrections</small></div>
+        <label class="switch"><input type="checkbox" id="setVoice"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <div><label>Sound effects</label><small>Cheers and soft boops</small></div>
+        <label class="switch"><input type="checkbox" id="setSfx"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <div><label>Say the letter each round</label><small>Your buddy names the new letter</small></div>
+        <label class="switch"><input type="checkbox" id="setAnnounce"><span class="slider"></span></label>
+      </div>
+
+      <div class="row">
+        <div><label>Which voice</label></div>
+        <select id="setVoiceName"></select>
+      </div>
+
+      <div class="row">
+        <div><label>Speaking speed</label></div>
+        <input type="range" id="setRate" min="0.6" max="1.2" step="0.05">
+      </div>
+
+      <div class="row">
+        <div><label>Keyboard helper</label><small>Show the lit-up key</small></div>
+        <select id="setKbd">
+          <option value="onmiss">When she misses</option>
+          <option value="always">Always on</option>
+          <option value="never">Never</option>
+        </select>
+      </div>
+
+      <button class="bigbtn done" id="closeSettings">Done</button>
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Items: emoji + word for each letter (a few options for variety)
+   ============================================================ */
+const ITEMS = {
+  A:[["🍎","Apple"],["🐜","Ant"],["✈️","Airplane"],["🥑","Avocado"]],
+  B:[["🏀","Ball"],["🍌","Banana"],["🐻","Bear"],["🦋","Butterfly"],["🚌","Bus"]],
+  C:[["🐱","Cat"],["🍪","Cookie"],["🚗","Car"],["🐮","Cow"],["🥕","Carrot"]],
+  D:[["🐶","Dog"],["🦆","Duck"],["🍩","Donut"],["🐬","Dolphin"],["🥁","Drum"]],
+  E:[["🐘","Elephant"],["🥚","Egg"],["👁️","Eye"]],
+  F:[["🐟","Fish"],["🦊","Fox"],["🌸","Flower"],["🐸","Frog"],["🍟","Fries"]],
+  G:[["🍇","Grapes"],["🐐","Goat"],["🎁","Gift"],["👻","Ghost"]],
+  H:[["🎩","Hat"],["🏠","House"],["🐴","Horse"],["❤️","Heart"],["🍯","Honey"]],
+  I:[["🍦","Ice cream"],["🧊","Ice"]],
+  J:[["🧃","Juice"],["🫙","Jar"],["🃏","Joker"]],
+  K:[["🪁","Kite"],["🔑","Key"],["🦘","Kangaroo"],["🐨","Koala"]],
+  L:[["🦁","Lion"],["🍋","Lemon"],["🍃","Leaf"],["🐞","Ladybug"]],
+  M:[["🌙","Moon"],["🐭","Mouse"],["🥛","Milk"],["🍄","Mushroom"],["🐵","Monkey"]],
+  N:[["👃","Nose"],["🥜","Nut"],["🪺","Nest"]],
+  O:[["🍊","Orange"],["🦉","Owl"],["🐙","Octopus"]],
+  P:[["🐷","Pig"],["🍕","Pizza"],["🐧","Penguin"],["🍐","Pear"],["🎈","Party balloon"]],
+  Q:[["👑","Queen"],["❓","Question"]],
+  R:[["🐰","Rabbit"],["🌈","Rainbow"],["🌹","Rose"],["🤖","Robot"],["🚀","Rocket"]],
+  S:[["🌞","Sun"],["🐍","Snake"],["⭐","Star"],["🍓","Strawberry"],["🧦","Sock"]],
+  T:[["🚂","Train"],["🌳","Tree"],["🐯","Tiger"],["🐢","Turtle"],["🍅","Tomato"]],
+  U:[["☂️","Umbrella"],["🦄","Unicorn"]],
+  V:[["🚐","Van"],["🎻","Violin"],["🌋","Volcano"]],
+  W:[["🍉","Watermelon"],["🐺","Wolf"],["🐋","Whale"],["⌚","Watch"],["💧","Water"]],
+  X:[["🩻","X-ray"],["🎵","Xylophone"]],
+  Y:[["🪀","Yo-yo"],["🧶","Yarn"],["💛","Yellow heart"]],
+  Z:[["🦓","Zebra"],["⚡","Zap"],["🤐","Zipper"]]
+};
+const ALPHABET = Object.keys(ITEMS);
+const LETTER_COLORS = ["#1d6fe0","#e0457b","#28c76f","#ff9f43","#8e44ad","#0aa6c2","#d63031"];
+
+// Colors the Boss can pick (name, light, main, dark)
+const PALETTE = [
+  { name:"Blue",   a1:"#5eb3ff", a2:"#1d6fe0", a3:"#0b3f8c" },
+  { name:"Red",    a1:"#ff9a9a", a2:"#e63946", a3:"#8c1c2b" },
+  { name:"Green",  a1:"#8be8a8", a2:"#28c76f", a3:"#146c3a" },
+  { name:"Yellow", a1:"#ffe08a", a2:"#f2a900", a3:"#8a6300" },
+  { name:"Purple", a1:"#c79bff", a2:"#8e44ad", a3:"#4a1e63" },
+  { name:"Pink",   a1:"#ffb3d1", a2:"#e0457b", a3:"#8c1d49" },
+  { name:"Orange", a1:"#ffc078", a2:"#ff7f11", a3:"#99490a" }
+];
+// Buddy animals the Boss can pick (emoji, name)
+const ANIMALS = [
+  ["🦁","Lion"],["🐶","Puppy"],["🐱","Kitty"],["🐸","Frog"],
+  ["🐻","Bear"],["🐧","Penguin"],["🦄","Unicorn"],["🐵","Monkey"],
+  ["🐰","Bunny"],["🐯","Tiger"],["🐢","Turtle"],["🐼","Panda"]
+];
+const ROUND_LEN = 10; // correct keys per mini-celebration
+
+const KEY_ROWS = [
+  ["Q","W","E","R","T","Y","U","I","O","P"],
+  ["A","S","D","F","G","H","J","K","L"],
+  ["Z","X","C","V","B","N","M"]
+];
+
+/* ============================================================
+   Settings (persisted)
+   ============================================================ */
+const DEFAULTS = { voice:true, sfx:true, announce:true, voiceName:"", rate:0.95, kbd:"onmiss" };
+let settings = loadSettings();
+function loadSettings(){
+  try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem("lionABC")||"{}")); }
+  catch(e){ return Object.assign({}, DEFAULTS); }
+}
+function saveSettings(){ try{ localStorage.setItem("lionABC", JSON.stringify(settings)); }catch(e){} }
+
+/* ============================================================
+   Elements
+   ============================================================ */
+const $ = (id)=>document.getElementById(id);
+const elPlay=$("play"), elPic=$("picture"), elLetter=$("letter"), elCard=$("card"),
+      elHint=$("hintword"), elKbd=$("keyboard"), elMascot=$("mascot"), elSpeech=$("speech"),
+      elStart=$("start"), elSettings=$("settings");
+
+/* ============================================================
+   Audio: WebAudio chimes + boops
+   ============================================================ */
+let actx=null;
+function ensureAudio(){
+  if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state==="suspended"){ actx.resume(); }
+}
+function tone(freq, start, dur, type, gain){
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type||"sine"; o.frequency.value=freq;
+  const t=actx.currentTime+start;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(gain||0.18,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function chimeSuccess(){
+  if(!settings.sfx) return; ensureAudio();
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f, i*0.09, 0.25, "triangle", 0.2));
+}
+function boopWrong(){
+  if(!settings.sfx) return; ensureAudio();
+  tone(300,0,0.16,"sine",0.14); tone(220,0.08,0.18,"sine",0.12);
+}
+function chimeFanfare(){
+  if(!settings.sfx) return; ensureAudio();
+  const notes=[523.25,659.25,783.99,1046.5,783.99,1046.5,1318.5];
+  notes.forEach((f,i)=>tone(f, i*0.11, 0.32, "triangle", 0.22));
+}
+
+/* ============================================================
+   Speech (TTS)
+   ============================================================ */
+// Spoken letter names — avoids voices reading "Q" as "Capital Q"
+const LETTER_NAME={A:"ay",B:"bee",C:"see",D:"dee",E:"ee",F:"eff",G:"jee",H:"aitch",
+  I:"eye",J:"jay",K:"kay",L:"ell",M:"em",N:"en",O:"oh",P:"pee",Q:"cue",R:"are",
+  S:"ess",T:"tee",U:"you",V:"vee",W:"double-you",X:"ex",Y:"why",Z:"zee"};
+function letterName(l){ return LETTER_NAME[l]||l; }
+
+let voices=[];
+function refreshVoices(){
+  if(!("speechSynthesis" in window)) return;
+  voices = speechSynthesis.getVoices();
+  const sel=$("setVoiceName");
+  if(sel){
+    sel.innerHTML="";
+    const enVoices = voices.filter(v=>/^en/i.test(v.lang));
+    const list = enVoices.length?enVoices:voices;
+    list.forEach(v=>{
+      const o=document.createElement("option");
+      o.value=v.name; o.textContent=`${v.name} (${v.lang})`;
+      if(v.name===settings.voiceName) o.selected=true;
+      sel.appendChild(o);
+    });
+    if(!settings.voiceName && list[0]){ settings.voiceName=pickDefaultVoice(list).name; }
+  }
+}
+function pickDefaultVoice(list){
+  // prefer a pleasant en-US female-ish voice when available
+  const pref = list.find(v=>/samantha|google us english|zira|female|aria|jenny/i.test(v.name));
+  return pref || list.find(v=>/en-US/i.test(v.lang)) || list[0];
+}
+function getVoice(){
+  return voices.find(v=>v.name===settings.voiceName) || pickDefaultVoice(voices) || null;
+}
+function say(text, onend){
+  if(!settings.voice || !("speechSynthesis" in window)){ if(onend) setTimeout(onend, 250); return; }
+  speechSynthesis.cancel(); // stop any queued speech => no flooding from mashing
+  const u=new SpeechSynthesisUtterance(text);
+  const v=getVoice(); if(v) u.voice=v;
+  u.rate=settings.rate; u.pitch=1.15; u.volume=1;
+  let done=false; const finish=()=>{ if(done) return; done=true; if(onend) onend(); };
+  u.onend=finish; u.onerror=finish;
+  // fallback in case onend doesn't fire
+  const ms = Math.max(1400, text.length*90/settings.rate + 600);
+  setTimeout(finish, ms);
+  speechSynthesis.speak(u);
+}
+if("speechSynthesis" in window){
+  refreshVoices();
+  speechSynthesis.onvoiceschanged=refreshVoices;
+}
+
+/* ============================================================
+   Game state
+   ============================================================ */
+let target=null, word="", lastLetter=null, wrongCount=0, locked=true, started=false;
+let lastWrongAt=0, lastWrongKey=null;
+let score=0, roundProgress=0;
+let chosenColor=PALETTE[0], chosenAnimal=ANIMALS[0];
+
+function randItem(letter){
+  const opts=ITEMS[letter];
+  return opts[Math.floor(Math.random()*opts.length)];
+}
+function pickLetter(){
+  let l;
+  do{ l=ALPHABET[Math.floor(Math.random()*ALPHABET.length)]; }while(l===lastLetter && ALPHABET.length>1);
+  return l;
+}
+
+function buildKeyboard(){
+  elKbd.innerHTML="";
+  KEY_ROWS.forEach(row=>{
+    const r=document.createElement("div"); r.className="krow";
+    row.forEach(k=>{
+      const d=document.createElement("div"); d.className="key"; d.dataset.k=k; d.textContent=k;
+      r.appendChild(d);
+    });
+    elKbd.appendChild(r);
+  });
+}
+function keyEl(letter){ return elKbd.querySelector(`.key[data-k="${letter}"]`); }
+
+function updateKeyboardVisibility(){
+  const show = settings.kbd==="always" || (settings.kbd==="onmiss" && wrongCount>0);
+  elKbd.classList.toggle("show", show && started);
+  // clear targets
+  elKbd.querySelectorAll(".key").forEach(k=>k.classList.remove("target","strong"));
+  if(show && target){
+    const k=keyEl(target);
+    if(k){ k.classList.add("target"); if(wrongCount>=2) k.classList.add("strong"); }
+  }
+}
+
+function showSpeech(txt){
+  elSpeech.textContent=txt; elSpeech.classList.add("show");
+  clearTimeout(showSpeech._t);
+  showSpeech._t=setTimeout(()=>elSpeech.classList.remove("show"), 2600);
+}
+
+function nextRound(){
+  wrongCount=0;
+  target=pickLetter(); lastLetter=target;
+  const it=randItem(target); elPic.textContent=it[0]; word=it[1];
+  elLetter.textContent=target;
+  elLetter.style.color=LETTER_COLORS[Math.floor(Math.random()*LETTER_COLORS.length)];
+  elHint.innerHTML="&nbsp;";
+  elMascot.textContent=chosenAnimal[0]; elMascot.style.transform="";
+  updateKeyboardVisibility();
+  locked=false;
+  if(settings.announce){
+    setTimeout(()=>{ if(!locked && target) say(letterName(target)); }, 350);
+  }
+}
+
+function setDots(){
+  const dots=$("dots"); dots.innerHTML="";
+  for(let i=0;i<ROUND_LEN;i++){
+    const d=document.createElement("span"); d.className="dot"+(i<roundProgress?" on":"");
+    dots.appendChild(d);
+  }
+}
+function updateScore(){
+  const s=$("score"); s.innerHTML=`⭐ <b>${score}</b>`;
+  s.classList.remove("bigscore"); void s.offsetWidth; s.classList.add("bigscore");
+}
+
+function onSuccess(){
+  locked=true;
+  score++; roundProgress++;
+  updateScore();
+  elMascot.classList.remove("cheer"); void elMascot.offsetWidth; elMascot.classList.add("cheer");
+  elCard.classList.remove("pop"); void elCard.offsetWidth; elCard.classList.add("pop");
+  elPic.classList.remove("pop"); void elPic.offsetWidth; elPic.classList.add("pop");
+  elHint.textContent=`${target} for ${word}!`;
+  elKbd.classList.remove("show");
+
+  if(roundProgress>=ROUND_LEN){
+    setDots();
+    chimeSuccess();
+    miniCelebrate();
+    say(`${letterName(target)} for ${word}!`, ()=>{
+      roundProgress=0; setDots();
+      nextRound();
+    });
+  } else {
+    setDots();
+    chimeSuccess();
+    burstConfetti();
+    say(`${letterName(target)} for ${word}!`, ()=>{ nextRound(); });
+  }
+}
+
+// Big mini-celebration every 10 correct keys
+function miniCelebrate(){
+  bigConfetti();
+  chimeFanfare();
+  showSpeech(`${score} stars! 🎉`);
+  elMascot.classList.remove("cheer"); void elMascot.offsetWidth; elMascot.classList.add("cheer");
+  // a short extra cheer line after the word is spoken
+  setTimeout(()=>{ say(`Yay! ${ROUND_LEN} in a row! Amazing!`); }, 1300);
+}
+
+const NICE_WRONG=[
+  (w,t)=>`That's ${w}. Let's find ${t}!`,
+  (w,t)=>`Oops, that's ${w}. Where is ${t}?`,
+  (w,t)=>`${w}? Let's try ${t}!`
+];
+// NICE_WRONG receives already-spoken letter names
+function onWrong(pressed){
+  const now=performance.now();
+  // anti-mash: debounce identical key spam within 600ms
+  if(pressed===lastWrongKey && now-lastWrongAt<600){ return; }
+  lastWrongAt=now; lastWrongKey=pressed;
+
+  wrongCount++;
+  boopWrong();
+  elCard.classList.remove("wiggle"); void elCard.offsetWidth; elCard.classList.add("wiggle");
+  elMascot.style.transform="rotate(-6deg)";
+  setTimeout(()=>{ elMascot.style.transform=""; }, 250);
+
+  updateKeyboardVisibility();
+  // flash the wrong key on the helper if visible
+  const wk=keyEl(pressed);
+  if(wk && elKbd.classList.contains("show")){
+    wk.classList.add("wrongflash"); setTimeout(()=>wk.classList.remove("wrongflash"),350);
+  }
+
+  if(settings.voice){
+    let msg;
+    if(wrongCount>=3) msg=`${letterName(target)} is right here! Press ${letterName(target)}.`;
+    else msg=NICE_WRONG[(wrongCount-1)%NICE_WRONG.length](letterName(pressed), letterName(target));
+    say(msg);
+  }
+  showSpeech(wrongCount>=3 ? `Press ${target} 👇` : `Find ${target}!`);
+}
+
+/* ============================================================
+   Input handling
+   ============================================================ */
+window.addEventListener("keydown",(e)=>{
+  if(!started) return;
+  if(e.repeat) return;                 // ignore held-key auto-repeat (anti-mash)
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const k=e.key;
+  if(k.length!==1) return;             // ignore non-character keys
+  if(!/[a-zA-Z]/.test(k)) return;      // ignore non-letters entirely
+  e.preventDefault();
+  if(locked) return;                   // ignore input during celebration
+  const up=k.toUpperCase();
+  if(up===target) onSuccess();
+  else onWrong(up);
+});
+
+// Let toddler also tap the on-screen keyboard keys
+elKbd.addEventListener("pointerdown",(e)=>{
+  const key=e.target.closest(".key"); if(!key||!started||locked) return;
+  const up=key.dataset.k;
+  if(up===target) onSuccess(); else onWrong(up);
+});
+
+/* ============================================================
+   Confetti (lightweight canvas)
+   ============================================================ */
+const cv=$("confetti"), cx=cv.getContext("2d");
+let parts=[], rafId=null;
+function sizeCanvas(){ cv.width=innerWidth; cv.height=innerHeight; }
+sizeCanvas(); addEventListener("resize", sizeCanvas);
+function confColors(){
+  return [chosenColor.a1, chosenColor.a2, "#ffd166", "#ffffff", "#ff6b9a", "#28c76f"];
+}
+function spawnConfetti(n, spread, power){
+  const cols=confColors();
+  for(let i=0;i<n;i++){
+    parts.push({
+      x:innerWidth/2+(Math.random()-0.5)*spread,
+      y:innerHeight*0.45,
+      vx:(Math.random()-0.5)*power, vy:-(Math.random()*(power+2)+5),
+      g:0.32+Math.random()*0.15, s:7+Math.random()*8,
+      c:cols[Math.floor(Math.random()*cols.length)],
+      rot:Math.random()*6.28, vr:(Math.random()-0.5)*0.4, life:0
+    });
+  }
+  if(!rafId) rafId=requestAnimationFrame(drawConfetti);
+}
+function burstConfetti(){ spawnConfetti(90, 120, 9); }
+function bigConfetti(){ spawnConfetti(220, innerWidth*0.7, 13); setTimeout(()=>spawnConfetti(120, innerWidth*0.7, 12), 220); }
+function drawConfetti(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{
+    p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life++;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c;
+    cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); cx.restore();
+  });
+  parts=parts.filter(p=>p.y<cv.height+40 && p.life<200);
+  if(parts.length) rafId=requestAnimationFrame(drawConfetti);
+  else { cx.clearRect(0,0,cv.width,cv.height); rafId=null; }
+}
+
+/* ============================================================
+   Start / settings / fullscreen wiring
+   ============================================================ */
+const elChooser=$("chooser");
+function applyTheme(p){
+  const r=document.documentElement.style;
+  r.setProperty("--accent-1",p.a1);
+  r.setProperty("--accent-2",p.a2);
+  r.setProperty("--accent-3",p.a3);
+  const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.content=p.a2;
+}
+function buildChooser(){
+  const sw=$("swatches"); sw.innerHTML="";
+  PALETTE.forEach((p,i)=>{
+    const b=document.createElement("button");
+    b.className="swatch"+(i===0?" sel":"");
+    b.style.background=`linear-gradient(180deg,${p.a1},${p.a2})`;
+    b.title=p.name; b.setAttribute("aria-label",p.name);
+    b.addEventListener("click",()=>{
+      chosenColor=p; applyTheme(p);
+      sw.querySelectorAll(".swatch").forEach(x=>x.classList.remove("sel"));
+      b.classList.add("sel"); refreshChooserGo();
+    });
+    sw.appendChild(b);
+  });
+  const an=$("animals"); an.innerHTML="";
+  ANIMALS.forEach((a,i)=>{
+    const b=document.createElement("button");
+    b.className="animal"; b.textContent=a[0]; b.title=a[1]; b.setAttribute("aria-label",a[1]);
+    b.addEventListener("click",()=>{
+      chosenAnimal=a; $("chooserPreview").textContent=a[0];
+      an.querySelectorAll(".animal").forEach(x=>x.classList.remove("sel"));
+      b.classList.add("sel"); chosenAnimalPicked=true; refreshChooserGo();
+    });
+    an.appendChild(b);
+  });
+}
+let chosenAnimalPicked=false;
+function refreshChooserGo(){ $("goBtn").disabled = !chosenAnimalPicked; }
+
+function openChooser(goFs){
+  ensureAudio();
+  if(goFs) requestFS();
+  elStart.classList.add("hide");
+  // reset selections (color defaults to blue/first, animal must be picked)
+  chosenColor=PALETTE[0]; applyTheme(chosenColor); chosenAnimalPicked=false;
+  $("chooserPreview").textContent="🦁";
+  buildChooser();
+  refreshChooserGo();
+  elChooser.classList.add("show");
+}
+$("playBtn").addEventListener("click",()=>openChooser(false));
+$("fsStartBtn").addEventListener("click",()=>openChooser(true));
+
+function beginPlay(){
+  elChooser.classList.remove("show");
+  elPlay.classList.remove("hide");
+  $("scorebox").classList.remove("hide");
+  score=0; roundProgress=0; updateScore(); setDots();
+  started=true; locked=true;
+  if(settings.voice){ say(`${chosenColor.name} ${chosenAnimal[1]}! Let's play!`); }
+  setTimeout(()=>{ nextRound(); }, 900);
+}
+$("goBtn").addEventListener("click",beginPlay);
+
+function requestFS(){
+  const el=document.documentElement;
+  const fn=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(fn){ try{ fn.call(el); }catch(e){} }
+}
+function toggleFS(){
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  } else requestFS();
+}
+$("fsBtn").addEventListener("click",toggleFS);
+
+// Settings panel
+function openSettings(){ syncSettingsUI(); elSettings.classList.add("show"); }
+function closeSettings(){ elSettings.classList.remove("show"); }
+$("gearBtn").addEventListener("click",openSettings);
+$("closeSettings").addEventListener("click",closeSettings);
+elSettings.addEventListener("click",(e)=>{ if(e.target===elSettings) closeSettings(); });
+
+function syncSettingsUI(){
+  $("setVoice").checked=settings.voice;
+  $("setSfx").checked=settings.sfx;
+  $("setAnnounce").checked=settings.announce;
+  $("setRate").value=settings.rate;
+  $("setKbd").value=settings.kbd;
+  refreshVoices();
+}
+function bindSetting(id, key, type){
+  $(id).addEventListener("change",(e)=>{
+    settings[key] = type==="check" ? e.target.checked
+                  : type==="num"  ? parseFloat(e.target.value)
+                  : e.target.value;
+    saveSettings();
+    if(key==="kbd") updateKeyboardVisibility();
+  });
+}
+bindSetting("setVoice","voice","check");
+bindSetting("setSfx","sfx","check");
+bindSetting("setAnnounce","announce","check");
+bindSetting("setRate","rate","num");
+bindSetting("setKbd","kbd","str");
+$("setVoiceName").addEventListener("change",(e)=>{ settings.voiceName=e.target.value; saveSettings(); });
+
+/* ============================================================
+   Decorative drifting background
+   ============================================================ */
+(function decorate(){
+  const bg=$("bg"); const set=["☁️","⭐","🫧","☁️","⭐"];
+  for(let i=0;i<6;i++){
+    const b=document.createElement("b");
+    b.textContent=set[i%set.length];
+    b.style.top=(Math.random()*80+2)+"vh";
+    b.style.fontSize=(3+Math.random()*4)+"rem";
+    b.style.animationDuration=(30+Math.random()*40)+"s";
+    b.style.animationDelay=(-Math.random()*40)+"s";
+    bg.appendChild(b);
+  }
+})();
+
+buildKeyboard();
+// prevent context menu (long-press) from interfering on touch
+addEventListener("contextmenu",(e)=>{ if(started) e.preventDefault(); });
+</script>
+</body>
+</html>
