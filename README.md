@@ -1,7 +1,8 @@
-# 🦁 Lion's ABC Typing
+# 🦁 Toddler Games
 
-A tiny, distraction-free typing game for toddlers (2+) — built in an afternoon with
-Claude Code and a very particular two-year-old.
+A tiny, distraction-free set of typing **adventures** for toddlers (2+) — built with
+Claude Code and a very particular two-year-old. It started as just the ABCs and is
+growing into a little collection of lessons.
 
 The whole thing is **one self-contained `index.html`**, open it to get playing.
 
@@ -11,27 +12,31 @@ The whole thing is **one self-contained `index.html`**, open it to get playing.
 
 ---
 
-## The idea
+## The adventures
 
-Show one big CAPITAL letter and a matching picture. The child finds that key on the
-keyboard. Get it right and the app celebrates and says **"A for Apple!"** — then moves
-on. Get it wrong and a friendly animal gently nudges you toward the right key. That's
-the whole loop.
+- **01 · Letters** — one big CAPITAL letter and a matching picture; find that key.
+  Right → *"A for Apple!"* and confetti. Wrong → a friendly nudge toward the key.
+- **02 · Words** — a picture and a short word spelled out (🐱 **CAT**). The current
+  letter glows; type the letters in order. Each correct letter is spoken (*"C… A… T…"*),
+  and finishing the word says *"C, A, T spells cat!"*.
+- *More coming soon* — the picker shows what's next.
 
 ## How it plays
 
 1. Tap **▶ Let's Play!**
-2. **Pick a color and a buddy animal** — chosen once for the whole game. Your color
-   tints the letters, keyboard, and confetti; your animal becomes the on-screen cheerleader.
-3. A big letter appears with a matching emoji picture. Press that key → confetti, a
-   happy chime, and your buddy says **"A for Apple!"**
-4. The **⭐ score** climbs with every correct key. A row of dots tracks progress to the
-   next **mini-celebration**, which fires **every 10 correct keys** with a big confetti
-   blast and a fanfare.
+2. **Pick a color and a buddy animal** — chosen once and kept across every adventure.
+   Your color tints the letters, keyboard, confetti, **and the whole screen's mood**;
+   your animal becomes the on-screen cheerleader.
+3. **Pick an adventure** from the lesson picker.
+4. Play! The **⭐ score** climbs with every success. A row of dots tracks progress to the
+   next **mini-celebration** — every **10 letters** (Letters) or **5 words** (Words) — a
+   big confetti blast, a fanfare, and a bouncing banner.
+5. Tap the **🏠 Home** button (top-left) any time to switch adventures. Color and buddy
+   are remembered.
 
-Miss a key and you get an escalating, never-scary hint: a spoken *"That's B — let's
-find A!"*, then the on-screen keyboard lights up the right key, then a bouncing 👆
-points right at it.
+Miss a key and you get a gentle, never-scary hint: a spoken *"That's B — let's find A!"*.
+After two hints the app simply lights up the right key with a pointing 👇 and leaves it
+there; the key you pressed glows and slowly fades so you can see where it was.
 
 ## Run it
 
@@ -71,5 +76,11 @@ Everything lives in `index.html`, near the top of the `<script>`:
 
 - **`ITEMS`** — the emoji + word for each letter (a few options per letter, picked at
   random). Swap in your kid's favorites.
+- **`WORDS`** — the Words adventure's list. It's **derived automatically** from `ITEMS`:
+  any short single word (3–4 letters) becomes a spellable word with its emoji, so adding
+  a short word to `ITEMS` adds it here too. (~41 words today, covering 23 starting letters.)
 - **`PALETTE`** and **`ANIMALS`** — the colors and buddies on the chooser screen.
-- **`ROUND_LEN`** — how many correct keys earn a mini-celebration (default `10`).
+- **`LESSONS`** — the list of adventures. Each has an `id` the round logic switches on,
+  a display `num`/`icon`/`title`/`blurb`, a `roundLen` (successes per mini-celebration),
+  a `cheer` line, and an optional `locked: true` to show a "coming soon" teaser card.
+  Add an entry plus a branch in `showRound`/`onRight` to grow the game.
