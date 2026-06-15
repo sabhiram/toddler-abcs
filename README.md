@@ -19,6 +19,11 @@ The whole thing is **one self-contained `index.html`**, open it to get playing.
 - **02 · Words** — a picture and a short word spelled out (🐱 **CAT**). The current
   letter glows; type the letters in order. Each correct letter is spoken (*"C… A… T…"*),
   and finishing the word says *"C, A, T spells cat!"*.
+- **03 · Counting** — a neat grid of N (1–9) emojis and a box showing the number
+  (🐱🐱🐱🐱 → **[ 4 ] CATS**). Press that number key. Teaches recognizing the count
+  *and* finding the digit on the keyboard.
+- **04 · Counting (pro)** — same, but the number box is empty (**[ ? ] CATS**). Count
+  the emojis yourself and type the right digit.
 - *More coming soon* — the picker shows what's next.
 
 ## How it plays
@@ -79,6 +84,9 @@ Everything lives in `index.html`, near the top of the `<script>`:
 - **`WORDS`** — the Words adventure's list. It's **derived automatically** from `ITEMS`:
   any short single word (3–4 letters) becomes a spellable word with its emoji, so adding
   a short word to `ITEMS` adds it here too. (~41 words today, covering 23 starting letters.)
+- **`COUNT_ITEMS`** — the Counting adventures' emojis, also **derived from `ITEMS`** and
+  auto-pluralized (`pluralize` + a small `PLURAL_EXC` map; `COUNT_SKIP` drops uncountable
+  or plural-only nouns like *water*/*grapes*). ~85 items today.
 - **`PALETTE`** and **`ANIMALS`** — the colors and buddies on the chooser screen.
 - **`LESSONS`** — the list of adventures. Each has an `id` the round logic switches on,
   a display `num`/`icon`/`title`/`blurb`, a `roundLen` (successes per mini-celebration),

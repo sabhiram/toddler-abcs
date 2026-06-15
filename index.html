@@ -124,6 +124,35 @@
   .wtile.justdone{ animation:wpop .45s ease; }
   @keyframes wpop{ 0%{ transform:scale(1);} 40%{ transform:scale(1.3) rotate(-4deg);} 100%{ transform:scale(1);} }
 
+  /* counting display (lessons 03/04): [ 4 ] CATS */
+  #card.count{ padding:clamp(.4rem,2vh,1rem) clamp(1.2rem,5vw,2.6rem); gap:clamp(.6rem,2.5vw,1.2rem); min-width:0; }
+  #count{ display:flex; align-items:center; gap:clamp(.6rem,2.5vw,1.2rem); }
+  .numbox{
+    font-size:clamp(3.5rem,16vh,8rem); font-weight:900; line-height:1; color:#fff;
+    min-width:1.3em; text-align:center; border-radius:24px; padding:.05em .18em;
+    background:linear-gradient(180deg,var(--accent-1),var(--accent-2));
+    box-shadow:0 8px 0 var(--accent-3), var(--shadow);
+  }
+  .numbox.empty{
+    background:#fff; color:var(--accent-1); border:5px dashed var(--accent-1);
+    box-shadow:none; animation:numpulse 1.1s ease-in-out infinite;
+  }
+  @keyframes numpulse{ 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-5px) scale(1.04);} }
+  .numword{ font-size:clamp(1.6rem,7vh,3.4rem); font-weight:900; color:var(--accent-3); letter-spacing:.02em; }
+
+  /* the picture area as a neat grid of N emojis */
+  #picture.grid{
+    display:grid; place-items:center; gap:clamp(.1rem,1.6vw,.7rem);
+    font-size:clamp(2rem,8.5vh,4.6rem);
+    filter:drop-shadow(0 8px 12px rgba(11,63,140,.18));
+  }
+  #picture.grid .cemoji{ line-height:1; animation:cpop .35s ease backwards; }
+  @keyframes cpop{ 0%{ transform:scale(0) rotate(-12deg); opacity:0; } 70%{ transform:scale(1.15);} 100%{ transform:scale(1); opacity:1; } }
+
+  /* number row on the on-screen keyboard: only in counting lessons */
+  .krow.numrow{ display:none; }
+  #keyboard.counting .krow.numrow{ display:flex; }
+
   /* mascot lion that reacts */
   #mascot{
     position:absolute; bottom:0; right:clamp(.5rem,3vw,3rem);
@@ -346,7 +375,7 @@
   <div id="stage">
     <div id="play" class="hide">
       <div id="picture" aria-hidden="true">🦁</div>
-      <div id="card"><span id="letter">A</span><div id="word" class="hide"></div></div>
+      <div id="card"><span id="letter">A</span><div id="word" class="hide"></div><div id="count" class="hide"><span class="numbox" id="numbox">4</span><span class="numword" id="numword">CATS</span></div></div>
       <div id="hintword">&nbsp;</div>
 
       <div id="speech"></div>
@@ -484,6 +513,30 @@ const WORDS = (()=>{
   return out;
 })();
 
+// Counting lessons (03/04): countable items derived from ITEMS, auto-pluralized.
+// Skip uncountable / awkward-to-pluralize nouns; multi-word labels are excluded too.
+const PLURAL_EXC = { Leaf:"Leaves", Wolf:"Wolves", Fish:"Fish", Mouse:"Mice", Goose:"Geese",
+  Foot:"Feet", Tomato:"Tomatoes", Volcano:"Volcanoes" };
+// uncountable, plural-only, or otherwise awkward-to-count nouns
+const COUNT_SKIP = new Set(["Honey","Milk","Juice","Water","Ice","Zap","Question","Rainbow","Fries","Grapes"]);
+function pluralize(w){
+  if(PLURAL_EXC[w]) return PLURAL_EXC[w];
+  if(/(s|x|z|ch|sh)$/i.test(w)) return w+"es";
+  if(/[^aeiou]y$/i.test(w)) return w.slice(0,-1)+"ies";
+  return w+"s";
+}
+const COUNT_ITEMS = (()=>{
+  const out=[], seen=new Set();
+  for(const l of ALPHABET){
+    for(const [emoji,w] of ITEMS[l]){
+      if(/^[A-Za-z]+$/.test(w) && !COUNT_SKIP.has(w) && !seen.has(w)){
+        seen.add(w); out.push([emoji, w, pluralize(w)]);  // [emoji, singular, plural]
+      }
+    }
+  }
+  return out;
+})();
+
 // Colors the Boss can pick (name, light, main, dark)
 const PALETTE = [
   { name:"Blue",   a1:"#5eb3ff", a2:"#1d6fe0", a3:"#0b3f8c" },
@@ -512,12 +565,16 @@ const ANIMALS = [
    - locked  : true => shown greyed-out as a teaser (not playable yet)
    ============================================================ */
 const LESSONS = [
-  { id:"letters", num:"01", icon:"🔤", title:"Letters", blurb:"Find the letter!", roundLen:10, cheer:"10 in a row!" },
-  { id:"words",   num:"02", icon:"🐱", title:"Words",   blurb:"Spell the word!",  roundLen:5,  cheer:"5 words!" },
-  { id:"soon",    num:"03", icon:"✨", title:"More soon", blurb:"Coming up next!", locked:true }
+  { id:"letters",  num:"01", icon:"🔤", title:"Letters",      blurb:"Find the letter!",  roundLen:10, cheer:"10 in a row!" },
+  { id:"words",    num:"02", icon:"🐱", title:"Words",        blurb:"Spell the word!",   roundLen:5,  cheer:"5 words!" },
+  { id:"count",    num:"03", icon:"🔢", title:"Counting",     blurb:"Press the number!", roundLen:5,  cheer:"5 counts!" },
+  { id:"countpro", num:"04", icon:"🧮", title:"Counting Pro", blurb:"Count, then type!", roundLen:5,  cheer:"5 counts!" },
+  { id:"soon",     num:"05", icon:"✨", title:"More soon",    blurb:"Coming up next!",   locked:true }
 ];
+const isCounting = (id)=> id==="count" || id==="countpro";
 let currentLesson = LESSONS[0];
 
+const NUM_ROW = ["1","2","3","4","5","6","7","8","9"];
 const KEY_ROWS = [
   ["Q","W","E","R","T","Y","U","I","O","P"],
   ["A","S","D","F","G","H","J","K","L"],
@@ -589,6 +646,10 @@ const LETTER_NAME={A:"ay",B:"bee",C:"see",D:"dee",E:"ee",F:"eff",G:"gee",H:"aitc
   I:"eye",J:"jay",K:"kay",L:"ell",M:"em",N:"en",O:"oh",P:"pee",Q:"cue",R:"are",
   S:"ess",T:"tee",U:"you",V:"vee",W:"double-you",X:"ex",Y:"why",Z:"zee"};
 function letterName(l){ return LETTER_NAME[l]||l; }
+const NUMBER_NAME={"1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine"};
+function numberName(n){ return NUMBER_NAME[String(n)]||String(n); }
+// Spoken name for any pressable key — digit or letter
+function keyName(ch){ return /[0-9]/.test(ch) ? numberName(ch) : letterName(ch); }
 
 let voices=[];
 function refreshVoices(){
@@ -643,6 +704,8 @@ let score=0, roundProgress=0;
 let chosenColor=PALETTE[0], chosenAnimal=ANIMALS[0];
 // word-spelling state (lesson 02)
 let wordLetters=[], wordIndex=0, lastWord=null;
+// counting state (lessons 03/04)
+let count=0, countItem=null, lastNum=0;
 
 function randItem(letter){
   const opts=ITEMS[letter];
@@ -656,18 +719,21 @@ function pickLetter(){
 
 function buildKeyboard(){
   elKbd.innerHTML="";
-  KEY_ROWS.forEach(row=>{
-    const r=document.createElement("div"); r.className="krow";
-    row.forEach(k=>{
+  const addRow=(keys, cls)=>{
+    const r=document.createElement("div"); r.className="krow"+(cls?" "+cls:"");
+    keys.forEach(k=>{
       const d=document.createElement("div"); d.className="key"; d.dataset.k=k; d.textContent=k;
       r.appendChild(d);
     });
     elKbd.appendChild(r);
-  });
+  };
+  addRow(NUM_ROW, "numrow");        // shown only in counting lessons
+  KEY_ROWS.forEach(row=>addRow(row));
 }
 function keyEl(letter){ return elKbd.querySelector(`.key[data-k="${letter}"]`); }
 
 function updateKeyboardVisibility(){
+  elKbd.classList.toggle("counting", isCounting(currentLesson.id));   // reveals the number row
   const show = settings.kbd==="always" || (settings.kbd==="onmiss" && wrongCount>0);
   elKbd.classList.toggle("show", show && started);
   // clear targets (and any fading wrong-key highlight) before re-marking
@@ -689,14 +755,25 @@ function showRound(){
   wrongCount=0;
   elMascot.textContent=chosenAnimal[0]; elMascot.style.transform="";
   elHint.innerHTML="&nbsp;";
+  elPic.classList.remove("grid"); elPic.style.gridTemplateColumns="";  // reset; count round re-adds
   if(currentLesson.id==="words") showWordRound();
+  else if(isCounting(currentLesson.id)) showCountRound();
   else showLetterRound();
   updateKeyboardVisibility();
 }
 
+// Show exactly one of the three card displays
+function showCard(which){
+  elLetter.classList.toggle("hide", which!=="letter");
+  elWord.classList.toggle("hide", which!=="word");
+  $("count").classList.toggle("hide", which!=="count");
+  elCard.classList.toggle("word", which==="word");
+  elCard.classList.toggle("count", which==="count");
+}
+
 // Lesson 01: one big letter + its picture
 function showLetterRound(){
-  elWord.classList.add("hide"); elLetter.classList.remove("hide"); elCard.classList.remove("word");
+  showCard("letter");
   target=pickLetter(); lastLetter=target;
   const it=randItem(target); elPic.textContent=it[0]; word=it[1];
   elLetter.textContent=target;
@@ -705,7 +782,7 @@ function showLetterRound(){
 
 // Lesson 02: a word made of letter tiles, the current one to type glows
 function showWordRound(){
-  elLetter.classList.add("hide"); elWord.classList.remove("hide"); elCard.classList.add("word");
+  showCard("word");
   const it=randWord(); elPic.textContent=it[0]; word=it[1];
   wordLetters=word.toUpperCase().split(""); wordIndex=0;
   renderWordTiles();
@@ -728,10 +805,40 @@ function randWord(){
   return it;
 }
 
-// Speak the prompt for a fresh round (letter name, or the word to spell)
+// Lessons 03/04: N emojis + a number box. Basic shows the number; Pro hides it.
+function showCountRound(){
+  showCard("count");
+  const pro = currentLesson.id==="countpro";
+  countItem = COUNT_ITEMS[Math.floor(Math.random()*COUNT_ITEMS.length)];
+  do{ count=1+Math.floor(Math.random()*9); }while(count===lastNum && COUNT_ITEMS.length>0);
+  lastNum=count;
+  target=String(count); lastLetter=null;
+  const label = (count===1 ? countItem[1] : countItem[2]).toUpperCase();   // CAT / CATS
+  renderCountPics(countItem[0], count);
+  $("numword").textContent=label;
+  $("numbox").textContent = pro ? "?" : String(count);
+  $("numbox").classList.toggle("empty", pro);
+  elHint.textContent = pro ? "Count them, then type! 👇" : "Press the number! 👇";
+}
+function renderCountPics(emoji, n){
+  elPic.classList.add("grid");
+  const cols = n<=3 ? n : Math.ceil(Math.sqrt(n));
+  elPic.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  elPic.innerHTML="";
+  for(let i=0;i<n;i++){
+    const s=document.createElement("span");
+    s.className="cemoji"; s.textContent=emoji;
+    s.style.animationDelay=(i*0.06)+"s";
+    elPic.appendChild(s);
+  }
+}
+
+// Speak the prompt for a fresh round (letter name, word, or counting cue)
 function announceRound(){
   if(!settings.announce || locked || !target) return;
   if(currentLesson.id==="words") say(word.toLowerCase());
+  else if(currentLesson.id==="count") say(`${numberName(count)} ${(count===1?countItem[1]:countItem[2]).toLowerCase()}`);
+  else if(currentLesson.id==="countpro") say(`count the ${(count===1?countItem[1]:countItem[2]).toLowerCase()}`);
   else say(letterName(target));
 }
 
@@ -788,6 +895,9 @@ function speakSuccess(cb){
     const spell=wordLetters.map(letterName).join(", ");
     // say the final letter, then spell the whole word: "C, A, T spells cat!"
     say(letterName(last), ()=> say(`${spell}, spells ${word.toLowerCase()}!`, cb));
+  } else if(isCounting(currentLesson.id)){
+    const noun=(count===1?countItem[1]:countItem[2]).toLowerCase();
+    say(`${numberName(count)} ${noun}!`, cb);   // "Three cats!" — number once, before the item
   } else {
     say(`${letterName(target)} for ${word}!`, cb);
   }
@@ -803,6 +913,9 @@ function onSuccess(){
   if(currentLesson.id==="words"){
     Array.from(elWord.children).forEach(t=>{ t.classList.remove("cur"); t.classList.add("done"); });
     elHint.textContent=`${word}!`;
+  } else if(isCounting(currentLesson.id)){
+    $("numbox").textContent=String(count); $("numbox").classList.remove("empty");  // reveal in Pro
+    elHint.textContent=`${count} ${(count===1?countItem[1]:countItem[2]).toUpperCase()}!`;
   } else {
     elHint.textContent=`${target} for ${word}!`;
   }
@@ -869,7 +982,7 @@ function onWrong(pressed){
   // Two gentle spoken hints; after that, just show the target key + pointing hand
   // and leave it — no more nagging.
   if(settings.voice && wrongCount<=2){
-    const msg=NICE_WRONG[(wrongCount-1)%NICE_WRONG.length](letterName(pressed), letterName(target));
+    const msg=NICE_WRONG[(wrongCount-1)%NICE_WRONG.length](keyName(pressed), keyName(target));
     say(msg);
   }
   showSpeech(wrongCount>=2 ? `Press ${target} 👇` : `Find ${target}!`);
@@ -884,7 +997,9 @@ window.addEventListener("keydown",(e)=>{
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   const k=e.key;
   if(k.length!==1) return;             // ignore non-character keys
-  if(!/[a-zA-Z]/.test(k)) return;      // ignore non-letters entirely
+  // counting lessons also accept digit keys; letters lessons ignore digits
+  if(isCounting(currentLesson.id)){ if(!/[a-zA-Z0-9]/.test(k)) return; }
+  else if(!/[a-zA-Z]/.test(k)) return;
   e.preventDefault();
   if(locked) return;                   // ignore input during celebration
   const up=k.toUpperCase();
